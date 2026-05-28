@@ -1,0 +1,36 @@
+services:
+  # The Python mock API we created earlier
+  mock-score-api:
+    build:
+      context: ./mock-score-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+
+  # The new Go backend service
+  streaming-backend:
+    build:
+      context: ./streaming-app-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      # Connects using Docker's internal DNS network (mock-score-api matches the service name)
+      - MOCK_SCORE_API_URL=http://mock-score-api:8000/score
+    depends_on:
+      - mock-score-api
+
+  # The Next.js frontend application
+  streaming-frontend:
+    build:
+      context: ./streaming-app-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # The browser makes the fetch on the client side, so localhost:8081 is the host machine's port
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+    depends_on:
+      - streaming-backend
