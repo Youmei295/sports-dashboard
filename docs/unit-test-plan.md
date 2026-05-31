@@ -97,7 +97,7 @@ cd mock-score-api && python3 -m pytest -v
 A unified test runner is provided at the repository root:
 
 ```bash
-python3 scripts/run-tests.py
+# see .github/workflows/ci.yml for test commands
 ```
 
 This reads `.testrunner.yml` and executes each service's test suite sequentially with a 120-second timeout per suite.

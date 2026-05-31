@@ -8,17 +8,17 @@ import (
 	"testing"
 )
 
-func testServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, func()) {
+func testServer(t *testing.T, handler http.HandlerFunc) func() {
 	ts := httptest.NewServer(handler)
 	os.Setenv("MOCK_SCORE_API_URL", ts.URL+"/score")
-	return ts, func() {
+	return func() {
 		ts.Close()
 		os.Unsetenv("MOCK_SCORE_API_URL")
 	}
 }
 
 func TestGetScore_default(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			t.Errorf("expected GET, got %s", r.Method)
 		}
@@ -47,7 +47,7 @@ func TestGetScore_default(t *testing.T) {
 }
 
 func TestGetScore_basketball(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/score" {
 			t.Errorf("expected /score for basketball, got %s", r.URL.Path)
 		}
@@ -65,7 +65,7 @@ func TestGetScore_basketball(t *testing.T) {
 }
 
 func TestGetScore_soccer(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/soccer/score" {
 			t.Errorf("expected /soccer/score, got %s", r.URL.Path)
 		}
@@ -83,7 +83,7 @@ func TestGetScore_soccer(t *testing.T) {
 }
 
 func TestGetScore_serverError(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"error":"internal"}`))
 	})
@@ -99,7 +99,7 @@ func TestGetScore_serverError(t *testing.T) {
 }
 
 func TestResetGame(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
@@ -125,7 +125,7 @@ func TestResetGame(t *testing.T) {
 }
 
 func TestResetGame_soccer(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/soccer/reset" {
 			t.Errorf("expected /soccer/reset, got %s", r.URL.Path)
 		}
@@ -143,7 +143,7 @@ func TestResetGame_soccer(t *testing.T) {
 }
 
 func TestGetConfig(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/config" {
 			t.Errorf("expected /config, got %s", r.URL.Path)
 		}
@@ -166,7 +166,7 @@ func TestGetConfig(t *testing.T) {
 }
 
 func TestGetConfig_soccer(t *testing.T) {
-	ts, cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+	cleanup := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/soccer/config" {
 			t.Errorf("expected /soccer/config, got %s", r.URL.Path)
 		}

@@ -142,14 +142,6 @@ A feature is **not complete** without a corresponding set of unit tests. The mon
 
 Before pushing to remote, run the **full test suite** that corresponds to your changes on your local machine. This saves CI minutes and prevents broken commits from entering the shared repository.
 
-### Unified runner (one command)
-
-```bash
-python3 scripts/run-tests.py
-```
-
-This reads `.testrunner.yml` and executes each suite with a 120-second timeout.
-
 ### Per-service runners (targeted)
 
 ```bash
@@ -238,7 +230,7 @@ Once all status checks pass **and** a maintainer approves the review:
 | 1 — Isolation | Branch from `main` with `feature/` prefix | No direct pushes to `main` |
 | 2 — Setup | `docker compose up --build`, verify all ports 200 | Healthy local topology |
 | 3 — TDD | Write collocated unit tests in the right framework | Tests accompany every change |
-| 4 — Pre-flight | `python3 scripts/run-tests.py` — all green | Exit code 0 before push |
+| 4 — Pre-flight | Run per-service tests — all green | Exit code 0 before push |
 | 5 — PR & CI | Push → PR → parallel CI → merge | Branch protection + reviewer approval |
 
 Follow this playbook on every feature, no exceptions. It keeps the monorepo healthy, the pipeline fast, and production stable.
