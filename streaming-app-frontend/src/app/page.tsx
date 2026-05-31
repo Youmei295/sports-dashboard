@@ -1,100 +1,171 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from "react"
+import type { Sport, ScoreData, MatchEvent } from "./lib/types"
+import { fetchSportStats, fetchScore } from "./lib/api"
+import SportSelector from "./components/SportSelector"
+import MetricSelector from "./components/MetricSelector"
+import Scoreboard from "./components/Scoreboard"
+import StatusBadge from "./components/StatusBadge"
+import StatGrid from "./components/StatGrid"
+import EventTimeline from "./components/EventTimeline"
 
 export default function Home() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [sport, setSport] = useState("basketball")
+  const [schema, setSchema] = useState<Sport | null>(null)
+  const [data, setData] = useState<ScoreData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [visibleMetrics, setVisibleMetrics] = useState<Set<string>>(new Set())
+  const currentSport = useRef(sport)
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('http://localhost:8081/api/score');
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const result = await res.json();
-        setData(result);
-        setError('');
-      } catch (err: any) {
-        console.error('Fetch error:', err);
-        setError(err.message || 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    };
+    currentSport.current = sport
+  }, [sport])
 
-    fetchData();
-    const interval = setInterval(fetchData, 3000); // Poll every 3 seconds
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    let cancelled = false
+    fetchSportStats(sport)
+      .then((s) => {
+        if (cancelled) return
+        setSchema(s)
+        setVisibleMetrics(new Set(s.stats.map((sf) => sf.field)))
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSchema(null)
+        setVisibleMetrics(new Set())
+      })
+    return () => { cancelled = true }
+  }, [sport])
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchOnce = async () => {
+      try {
+        const result = await fetchScore(sport)
+        if (cancelled) return
+        setData(result)
+        setError("")
+      } catch (err: unknown) {
+        if (cancelled) return
+        setError(err instanceof Error ? err.message : "Failed to fetch data")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    const timer = setTimeout(fetchOnce, 0)
+    const interval = setInterval(async () => {
+      try {
+        const result = await fetchScore(sport)
+        if (cancelled) return
+        setData(result)
+        setError("")
+      } catch (err: unknown) {
+        if (cancelled) return
+        setError(err instanceof Error ? err.message : "Failed to fetch data")
+      }
+    }, 3000)
+    return () => { cancelled = true; clearTimeout(timer); clearInterval(interval) }
+  }, [sport])
+
+  const homeTeam = (data?.homeTeam as string) || ""
+  const awayTeam = (data?.awayTeam as string) || ""
+  const homeScore = data?.homeScore as number | undefined
+  const awayScore = data?.awayScore as number | undefined
+  const status = (data?.status as string) || ""
+  const events = data?.events as MatchEvent[] | undefined
+
+  const quarterOrHalf =
+    data?.quarter !== undefined
+      ? { label: "Quarter", value: data.quarter as number }
+      : data?.half !== undefined
+        ? { label: "Half", value: data.half as number }
+        : null
 
   return (
-    <main className="min-h-screen p-8 flex items-center justify-center relative overflow-hidden text-slate-100">
-      {/* Decorative background blobs */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600 opacity-20 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600 opacity-20 blur-[120px] pointer-events-none"></div>
+    <main className="min-h-screen p-4 md:p-8 flex items-center justify-center relative overflow-hidden text-slate-100">
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600 opacity-20 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-600 opacity-20 blur-[120px] pointer-events-none" />
 
-      <div className="glass-panel w-full max-w-3xl p-8 z-10 transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_8px_40px_0_rgba(56,189,248,0.1)]">
-        <header className="flex justify-between items-center mb-8 border-b border-white/10 pb-5">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white flex items-center gap-4 font-['Outfit']">
-            <span className="live-indicator"></span>
-            Live Score Dashboard
-          </h1>
-          <div className="text-sm md:text-base text-slate-400 font-medium px-4 py-1.5 bg-white/5 rounded-full border border-white/5">
-            {loading && !data ? 'Connecting...' : 'Real-time Updates'}
+      <div className="glass-panel w-full max-w-4xl p-6 md:p-8 z-10 transition-all duration-500 hover:shadow-[0_8px_40px_0_rgba(56,189,248,0.1)]">
+        <header className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6 border-b border-white/10 pb-5">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+              <span className="live-indicator" />
+              Sports Dashboard
+            </h1>
+            <div className="text-xs text-slate-500 font-medium px-3 py-1 bg-white/5 rounded-full border border-white/5">
+              {loading && !data ? "Connecting..." : "Live"}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <SportSelector selected={sport} onChange={setSport} />
+            {schema && (
+              <MetricSelector
+                stats={schema.stats}
+                selected={visibleMetrics}
+                onChange={setVisibleMetrics}
+              />
+            )}
           </div>
         </header>
 
-        <div className="content relative min-h-[200px]">
+        <div className="space-y-6">
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-5 rounded-2xl mb-6 flex items-center gap-3 backdrop-blur-md">
-              <span className="text-xl">⚠️</span>
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl flex items-center gap-3 backdrop-blur-md">
+              <span className="text-xl shrink-0">⚠️</span>
               <div>
-                <strong className="block font-semibold">Connection Error</strong>
-                <span className="text-sm opacity-80">{error}. Is the Go backend running on port 8080?</span>
+                <strong className="block font-semibold text-sm">Connection Error</strong>
+                <span className="text-xs opacity-80">{error}</span>
               </div>
             </div>
           )}
 
           {loading && !data && !error && (
-            <div className="absolute inset-0 flex justify-center items-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-400"></div>
+            <div className="flex justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-400" />
             </div>
           )}
 
           {data && (
-            <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              {/* Optional Scoreboard Layout if common fields exist */}
-              {(data.homeScore !== undefined || data.homeTeam !== undefined) && (
-                 <div className="flex justify-between items-center bg-gradient-to-r from-white/5 via-white/10 to-white/5 rounded-3xl p-8 border border-white/10 shadow-lg relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-400 to-transparent opacity-50"></div>
-                    <div className="text-center w-1/3">
-                      <h2 className="text-2xl font-semibold text-slate-300 font-['Outfit']">{data.homeTeam || 'Home Team'}</h2>
-                      <div className="text-6xl font-bold text-white mt-4 tracking-tighter drop-shadow-lg">{data.homeScore ?? '-'}</div>
-                    </div>
-                    <div className="text-2xl font-black text-slate-500/50 italic px-6">VS</div>
-                    <div className="text-center w-1/3">
-                      <h2 className="text-2xl font-semibold text-slate-300 font-['Outfit']">{data.awayTeam || 'Away Team'}</h2>
-                      <div className="text-6xl font-bold text-white mt-4 tracking-tighter drop-shadow-lg">{data.awayScore ?? '-'}</div>
-                    </div>
-                 </div>
+            <>
+              <div className="flex flex-wrap items-center gap-3">
+                <StatusBadge
+                  status={status}
+                  detail={quarterOrHalf?.value}
+                  detailLabel={quarterOrHalf?.label}
+                />
+                <span className="text-xs text-slate-500 font-mono">{data.clock as string}</span>
+              </div>
+
+              {homeTeam && awayTeam && (
+                <Scoreboard
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                  homeScore={homeScore ?? "-"}
+                  awayScore={awayScore ?? "-"}
+                />
               )}
 
-              {/* Raw JSON Data Viewer */}
-              <div className="bg-black/30 rounded-2xl p-1 border border-white/5 backdrop-blur-md">
-                <div className="px-4 py-2 border-b border-white/5 text-xs text-slate-500 font-medium tracking-wider uppercase">
+              {schema && <StatGrid stats={schema.stats} data={data} visibleFields={visibleMetrics} />}
+
+              {events && events.length > 0 && <EventTimeline events={events} />}
+
+              <details className="group">
+                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 select-none">
                   Raw API Payload
-                </div>
-                <div className="p-4 overflow-auto max-h-[300px] custom-scrollbar">
-                  <pre className="text-sm text-sky-200/90 font-mono leading-relaxed">
+                </summary>
+                <div className="mt-2 bg-black/30 rounded-2xl p-4 border border-white/5 backdrop-blur-md overflow-auto max-h-60 custom-scrollbar">
+                  <pre className="text-xs text-sky-200/80 font-mono leading-relaxed">
                     {JSON.stringify(data, null, 2)}
                   </pre>
                 </div>
-              </div>
-            </div>
+              </details>
+            </>
           )}
         </div>
       </div>
     </main>
-  );
+  )
 }

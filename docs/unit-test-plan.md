@@ -1,91 +1,64 @@
-# Unit Testing Implementation Plan
+# Unit Testing Status
 
 ## Service: Frontend (`streaming-app-frontend`)
 
-### Stack Choice
-- **Vitest** — unit test runner (Jest-compatible, native TS, fast)
+### Stack
+- **Vitest** — unit test runner
 - **@testing-library/react** — component rendering/interaction
-- **@testing-library/jest-dom** — DOM matchers (`toBeInTheDocument`, etc.)
-- **jsdom** — browser environment for component tests
-- Manual `fetch` mocking (no extra dependency needed)
+- **@testing-library/jest-dom** — DOM matchers
+- **jsdom** — browser environment
+- Manual `fetch` mocking (no extra dependency)
 
-### Setup Steps
-1. Install dev dependencies:
-   ```bash
-   npm install -D vitest @testing-library/react @testing-library/jest-dom @vitejs/plugin-react jsdom
-   ```
-2. Create `vitest.config.ts` at frontend root:
-   - Plugin: `@vitejs/plugin-react`
-   - `environment: "jsdom"`
-   - `setupFiles: "./src/tests/setup.ts"`
-3. Create `src/tests/setup.ts`:
-   - Import `@testing-library/jest-dom/vitest`
-   - Mock `global.fetch`
-   - Mock `console.error` to suppress expected error output
-4. Add scripts to `package.json`:
-   - `"test": "vitest run"`
-   - `"test:watch": "vitest"`
-5. Run `npm run test` to verify zero-fail baseline
+### Test Files & Coverage — 9 files, 46 tests
 
-### Test Cases — `src/app/__tests__/page.test.tsx`
+**`src/app/lib/__tests__/api.test.ts`** (API client tests):
+- `fetchSports` — successful fetch, error handling
+- `fetchSportStats` — successful fetch, error handling
+- `fetchScore` — successful fetch, error handling
+- `resetGame` — successful fetch, error handling
 
-| # | Test Name | What It Verifies |
-|---|---|---|
-| 1 | **renders loading spinner on mount** | Before fetch resolves, spinner (`animate-spin`) is visible |
-| 2 | **renders error UI on fetch failure** | When fetch rejects, error banner with `Connection Error` appears |
-| 3 | **renders score data on success** | When fetch resolves, team names and scores render in the DOM |
-| 4 | **polls every 3 seconds** | `fetch` is called multiple times (assert at least 2 calls with `advanceTimers`) |
-| 5 | **cleans up interval on unmount** | After unmounting, no further `fetch` calls made |
-| 6 | **renders raw JSON payload** | The `<pre>` block contains stringified response data |
+**`src/app/__tests__/page.test.tsx`** (6 tests):
+- renders loading spinner on mount
+- renders error UI on fetch failure
+- renders score data on success
+- renders status badge
+- renders match events
+- renders raw JSON payload
 
-**Mock Data Shape (used across tests):**
-```json
-{
-  "homeTeam": "Lakers",
-  "awayTeam": "Warriors",
-  "homeScore": 87,
-  "awayScore": 93,
-  "status": "In Progress"
-}
+**`src/app/components/__tests__/`** (7 component test files):
+- `EventTimeline.test.tsx` — renders events, minutes, header, empty/undefined handling
+- `MetricSelector.test.tsx` — button rendering, dropdown, checkboxes, onChange, scoreboard field exclusion, count
+- `Scoreboard.test.tsx` — renders teams, scores, VS, dash for missing
+- `SportSelector.test.tsx` — renders buttons, onChange, highlight, fallback, loading skeleton
+- `StatCard.test.tsx` — string/number/object/array rendering, null/undefined/empty
+- `StatGrid.test.tsx` — renders non-scoreboard fields, excludes scoreboard fields, empty state
+- `StatusBadge.test.tsx` — renders status text, detail label/value, various statuses
+
+### Run
+```bash
+cd streaming-app-frontend && npm test
 ```
-
-### Refactoring Needed (minor)
-- The hardcoded URL `http://localhost:8081/api/score` should be replaced with an env var `NEXT_PUBLIC_API_URL`, defaulting to the existing value. This lets tests inject a different URL if needed.
 
 ---
 
 ## Service: Backend (`streaming-app-backend`)
 
 ### Stack
-- Go standard library `testing` + `net/http/httptest` (zero external dependencies)
+- Go standard library `testing` + `net/http/httptest`
 
-### Refactoring Needed
-Extract the handler logic from `main()` into a standalone function so tests can call it directly without spinning up the full server:
+### Test Files & Coverage — 5 files, 38 tests
 
-```go
-func scoreHandler(mockAPIURL string) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        // ... handler body ...
-    }
-}
-```
-
-`main()` then calls `http.HandleFunc("/api/score", scoreHandler(os.Getenv("MOCK_SCORE_API_URL")))`
-
-### Test Cases — `main_test.go`
-
-| # | Test Name | What It Verifies |
+| File | Description | Test Count |
 |---|---|---|
-| 1 | **proxies score from mock API** | Creates `httptest.NewServer` as mock backend, asserts response body is forwarded unchanged |
-| 2 | **sets CORS headers** | `Access-Control-Allow-Origin: *` is present on response |
-| 3 | **handles OPTIONS preflight** | `OPTIONS /api/score` returns 200 with CORS headers, empty body |
-| 4 | **returns 500 on upstream failure** | When mock API is unreachable (bad URL), returns 500 with `Failed to fetch score` |
-| 5 | **respects MOCK_SCORE_API_URL env var** | Set env var, verify handler uses the custom URL |
-| 6 | **forwards Content-Type from upstream** | If mock returns `application/json`, the proxy preserves it |
+| `main_test.go` | Router integration tests with mock HTTP server | 8 |
+| `internal/handlers/score_test.go` | ScoreProxy, ResetProxy, ConfigProxy with CORS | 7 |
+| `internal/handlers/sports_test.go` | SportsList, SportStats (basketball, soccer, unknown, missing ID) | 7 |
+| `internal/proxy/proxy_test.go` | URL construction, GET/POST for default/basketball/soccer, env var defaults | 11 |
+| `internal/sports/registry_test.go` | Registry contents, FindByID, stat field completeness | 5 |
 
 ### Run
 ```bash
-go test ./... -v
+cd streaming-app-backend && go test ./... -v
 ```
 
 ---
@@ -93,26 +66,40 @@ go test ./... -v
 ## Service: Mock API (`mock-score-api`)
 
 ### Stack
-- `pytest` + `httpx` (async test client for FastAPI)
+- `pytest` + `httpx` (FastAPI TestClient)
 
-### Setup
-1. Add to `requirements.txt`:
-   ```
-   pytest
-   httpx
-   ```
-2. Create `test_app.py`
-
-### Test Cases
+### Test File — `test_app.py`, 12 tests
 
 | # | Test Name | What It Verifies |
 |---|---|---|
-| 1 | **returns valid JSON structure** | Response contains `homeTeam`, `awayTeam`, `homeScore`, `awayScore`, `status` |
-| 2 | **scores within expected range** | `homeScore` and `awayScore` are between 80 and 120 |
-| 3 | **status is valid** | `status` is one of `"In Progress"`, `"Final"`, `"Halftime"`, `"Scheduled"` (after improvements) |
-| 4 | **scores vary between calls** | Two successive calls return different score values (not cached) |
+| 1 | `test_score_returns_valid_structure` | All expected response fields present |
+| 2 | `test_scores_increase_over_time` | Scores never decrease across 20 sequential calls |
+| 3 | `test_status_eventually_reaches_final` | After enough calls, game reaches "Final" |
+| 4 | `test_reset_restores_initial_state` | POST `/reset` returns Scheduled, 0-0 |
+| 5 | `test_reset_allows_game_to_restart` | Game progresses normally after reset |
+| 6 | `test_config_endpoint` | `/config` returns proper values |
+| 7 | `test_score_range_is_reasonable` | Scores stay within 0–200 |
+| 8 | `test_halftime_duration` | Halftime lasts exactly the configured ticks |
+| 9 | `test_basketball_prefixed_routes` | `/basketball/score` works |
+| 10 | `test_basketball_prefixed_reset` | `/basketball/reset` works |
+| 11 | `test_basketball_prefixed_config` | `/basketball/config` works |
+| 12 | `test_soccer_endpoints` | Soccer score/config/reset all work |
 
 ### Run
 ```bash
-pip install -r requirements.txt && pytest -v
+cd mock-score-api && python3 -m pytest -v
 ```
+
+---
+
+## Running All Tests
+
+A unified test runner is provided at the repository root:
+
+```bash
+python3 scripts/run-tests.py
+```
+
+This reads `.testrunner.yml` and executes each service's test suite sequentially with a 120-second timeout per suite.
+
+The CI pipeline (`.github/workflows/ci.yml`) runs each service's tests conditionally based on which files changed in the push/PR.

@@ -1,0 +1,16 @@
+# Test Runner Configuration
+# Each test entry specifies a name, directory path, and command to run.
+# The runner changes to the given path before executing.
+
+tests:
+  - name: "Mock API (Python)"
+    path: mock-score-api
+    command: python3 -m pytest -v
+
+  - name: "Backend (Go)"
+    path: streaming-app-backend
+    command: go test -v ./...
+
+  - name: "Frontend (Next.js)"
+    path: streaming-app-frontend
+    command: npm test
