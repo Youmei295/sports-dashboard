@@ -1,14 +1,9 @@
 from fastapi import FastAPI
-import random
+from sports.basketball.routes import router as basketball_router
+from sports.soccer.routes import router as soccer_router
 
-app = FastAPI()
+app = FastAPI(title="Mock Sports Score API")
 
-@app.get("/score")
-def get_score():
-    return {
-        "homeTeam": "Lakers",
-        "awayTeam": "Warriors",
-        "homeScore": random.randint(80, 120),
-        "awayScore": random.randint(80, 120),
-        "status": "In Progress"
-    }
+app.include_router(basketball_router)
+app.include_router(basketball_router, prefix="/basketball")
+app.include_router(soccer_router, prefix="/soccer")
