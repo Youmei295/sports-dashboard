@@ -8,7 +8,17 @@ import (
 	"backend/internal/handlers"
 )
 
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
 func router(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/health" {
+		healthCheck(w, r)
+		return
+	}
+
 	path := strings.Trim(r.URL.Path, "/")
 	parts := strings.Split(path, "/")
 

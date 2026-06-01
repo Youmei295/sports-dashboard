@@ -8,6 +8,11 @@ services:
       - "8000:8000"
     environment:
       - PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   # The new Go backend service
   streaming-backend:
@@ -19,8 +24,14 @@ services:
     environment:
       # Connects using Docker's internal DNS network (mock-score-api matches the service name)
       - MOCK_SCORE_API_URL=http://mock-score-api:8000/score
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
-      - mock-score-api
+      mock-score-api:
+        condition: service_healthy
 
   # The Next.js frontend application
   streaming-frontend:
@@ -32,5 +43,8 @@ services:
     environment:
       # The browser makes the fetch on the client side, so localhost:8081 is the host machine's port
       - NEXT_PUBLIC_API_URL=http://localhost:8081
+      # Server-side requests inside the container use internal Docker network
+      - SSR_API_URL=http://streaming-backend:8080
     depends_on:
-      - streaming-backend
+      streaming-backend:
+        condition: service_healthy

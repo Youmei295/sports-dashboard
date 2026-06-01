@@ -18,7 +18,7 @@ func mockBaseURL() string {
 
 func mockURL(sport, action string) string {
 	base := mockBaseURL()
-	if sport == "" || sport == "basketball" {
+	if sport == "" {
 		return base + "/" + action
 	}
 	return base + "/" + sport + "/" + action
