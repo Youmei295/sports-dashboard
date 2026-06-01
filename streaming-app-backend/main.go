@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"backend/internal/handlers"
@@ -49,8 +50,13 @@ func router(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", router)
 
-	log.Println("Backend server running on http://localhost:8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Backend server running on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

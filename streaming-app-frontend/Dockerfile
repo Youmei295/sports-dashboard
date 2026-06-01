@@ -9,7 +9,10 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
+# Build the Next.js application
+RUN npm run build
+
 EXPOSE 3000
 
-# Run in development mode
-CMD ["npm", "run", "dev"]
+# Run in production mode
+CMD ["npm", "start"]
