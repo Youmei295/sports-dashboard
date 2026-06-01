@@ -70,8 +70,8 @@ func TestSportStats_basketball(t *testing.T) {
 	if !ok {
 		t.Fatal("expected stats array")
 	}
-	if len(stats) != 8 {
-		t.Fatalf("expected 8 stats for basketball, got %d", len(stats))
+	if len(stats) != 13 {
+		t.Fatalf("expected 13 stats for basketball, got %d", len(stats))
 	}
 
 	first := stats[0].(map[string]any)

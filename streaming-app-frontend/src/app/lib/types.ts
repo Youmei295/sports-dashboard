@@ -14,6 +14,18 @@ export interface SportsListResponse {
   sports: { id: string; name: string }[]
 }
 
+export interface TeamStats {
+  home: number
+  away: number
+}
+
+export interface BasketballStats {
+  rebounds: TeamStats
+  assists: TeamStats
+  fouls: TeamStats
+  timeouts: TeamStats
+}
+
 export interface MatchEvent {
   minute: number
   type: string

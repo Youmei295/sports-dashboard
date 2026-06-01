@@ -26,6 +26,48 @@ const sportSchema = {
   ],
 }
 
+const basketballData = {
+  homeTeam: "Lakers",
+  awayTeam: "Warriors",
+  homeScore: 87,
+  awayScore: 93,
+  status: "In Progress",
+  quarter: 3,
+  clock: "5:42",
+  possession: "Lakers",
+  rebounds: { home: 42, away: 38 },
+  assists: { home: 24, away: 21 },
+  fouls: { home: 12, away: 14 },
+  timeouts: { home: 5, away: 4 },
+  events: [
+    { minute: 5, type: "score", team: "home", description: "LeBron drives for 2!" },
+  ],
+}
+
+const basketballSchema = {
+  id: "basketball",
+  name: "Basketball",
+  stats: [
+    { field: "rebounds", label: "Rebounds", type: "object" },
+    { field: "assists", label: "Assists", type: "object" },
+    { field: "fouls", label: "Fouls", type: "object" },
+    { field: "timeouts", label: "Timeouts", type: "object" },
+    { field: "events", label: "Game Events", type: "array" },
+  ],
+}
+
+function setupBasketballMocks() {
+  global.fetch = vi.fn((url: string) => {
+    if (url.includes("/api/sports/")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(basketballSchema) })
+    }
+    if (url.includes("/api/score")) {
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(basketballData) })
+    }
+    return Promise.reject(new Error("unknown url"))
+  })
+}
+
 function setupMocks() {
   global.fetch = vi.fn((url: string) => {
     if (url.includes("/api/sports/")) {
@@ -93,6 +135,30 @@ describe("Home page", () => {
       const pre = document.querySelector("pre")
       expect(pre).toBeInTheDocument()
       expect(pre!.textContent).toContain("Lakers")
+    })
+  })
+
+  it("renders basketball rebound stats", async () => {
+    setupBasketballMocks()
+    render(<Home />)
+    await waitFor(() => {
+      expect(screen.getByText("Rebounds")).toBeInTheDocument()
+    })
+  })
+
+  it("renders basketball event timeline", async () => {
+    setupBasketballMocks()
+    render(<Home />)
+    await waitFor(() => {
+      expect(screen.getByText("LeBron drives for 2!")).toBeInTheDocument()
+    })
+  })
+
+  it("renders timeout counts correctly", async () => {
+    setupBasketballMocks()
+    render(<Home />)
+    await waitFor(() => {
+      expect(screen.getByText("Timeouts")).toBeInTheDocument()
     })
   })
 })

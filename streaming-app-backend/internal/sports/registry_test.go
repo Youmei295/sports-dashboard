@@ -44,6 +44,7 @@ func TestBasketballStats(t *testing.T) {
 	expected := []string{
 		"homeTeam", "awayTeam", "homeScore", "awayScore",
 		"status", "quarter", "clock", "possession",
+		"rebounds", "assists", "fouls", "timeouts", "events",
 	}
 	if len(s.Stats) != len(expected) {
 		t.Fatalf("expected %d stats, got %d", len(expected), len(s.Stats))

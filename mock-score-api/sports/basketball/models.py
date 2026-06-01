@@ -14,6 +14,25 @@ class GameState:
         self.halftime_counter: int = 0
         self.consecutive_scores: int = 0
         self.last_scorer: str | None = None
+        self.home_rebounds: int = 0
+        self.away_rebounds: int = 0
+        self.home_assists: int = 0
+        self.away_assists: int = 0
+        self.home_fouls: int = 0
+        self.away_fouls: int = 0
+        self.home_timeouts: int = config.TIMEOUT_LIMIT
+        self.away_timeouts: int = config.TIMEOUT_LIMIT
+        self.events: list[dict] = []
+        self.last_action: str = ""
+
+    def add_event(self, event_type: str, team: str, description: str):
+        minutes = self.clock_remaining // 60
+        self.events.append({
+            "minute": 12 - minutes if self.quarter <= 4 else 5, # rough approx
+            "type": event_type,
+            "team": team,
+            "description": description,
+        })
 
     def clock_formatted(self) -> str:
         if self.status != "In Progress":
@@ -32,4 +51,9 @@ class GameState:
             "quarter": self.quarter,
             "clock": self.clock_formatted(),
             "possession": self.possession,
+            "rebounds": {"home": self.home_rebounds, "away": self.away_rebounds},
+            "assists": {"home": self.home_assists, "away": self.away_assists},
+            "fouls": {"home": self.home_fouls, "away": self.away_fouls},
+            "timeouts": {"home": self.home_timeouts, "away": self.away_timeouts},
+            "events": list(self.events),
         }
