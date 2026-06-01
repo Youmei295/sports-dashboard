@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/joho/godotenv"
 	"backend/internal/handlers"
 )
 
@@ -48,6 +49,9 @@ func router(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Load .env file if it exists, ignore error if it doesn't (useful for production)
+	_ = godotenv.Load()
+
 	http.HandleFunc("/", router)
 
 	port := os.Getenv("PORT")

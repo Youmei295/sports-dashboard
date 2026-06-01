@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # Take environment variables from .env if it exists
+
 from fastapi import FastAPI
 from sports.basketball.routes import router as basketball_router
 from sports.soccer.routes import router as soccer_router
