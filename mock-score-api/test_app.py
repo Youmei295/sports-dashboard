@@ -125,6 +125,93 @@ def test_basketball_prefixed_config():
     assert resp.json()["homeTeam"] == "Lakers"
 
 
+# ============================================================
+# Basketball Enhanced Stats Tests
+# ============================================================
+
+def test_basketball_has_rebounds():
+    """Test that basketball response includes rebound stats."""
+    resp = client.get("/basketball/score")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "rebounds" in body
+    assert "home" in body["rebounds"]
+    assert "away" in body["rebounds"]
+
+
+def test_basketball_has_assists():
+    """Test that basketball response includes assist stats."""
+    resp = client.get("/basketball/score")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "assists" in body
+    assert "home" in body["assists"]
+    assert "away" in body["assists"]
+
+
+def test_basketball_has_fouls():
+    """Test that basketball response includes foul tracking."""
+    resp = client.get("/basketball/score")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "fouls" in body
+    assert "home" in body["fouls"]
+    assert "away" in body["fouls"]
+
+
+def test_basketball_has_timeouts():
+    """Test that basketball response includes timeout counts."""
+    resp = client.get("/basketball/score")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "timeouts" in body
+    assert body["timeouts"]["home"] <= 7
+    assert body["timeouts"]["away"] <= 7
+
+
+def test_basketball_events_timeline():
+    """Test that basketball tracks game events like soccer does."""
+    reset_basketball()
+    for _ in range(10):
+        client.get("/basketball/score")
+    resp = client.get("/basketball/score")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "events" in body
+    assert isinstance(body["events"], list)
+
+
+def test_basketball_stats_are_reasonable():
+    """Test that stats stay within realistic bounds during simulation."""
+    reset_basketball()
+    for _ in range(100):
+        resp = client.get("/basketball/score")
+        body = resp.json()
+        if body["status"] == "In Progress":
+            assert body["rebounds"]["home"] >= 0
+            assert body["rebounds"]["away"] >= 0
+            # Assists cannot exceed score (each assist = 1 basket)
+            assert body["assists"]["home"] <= body["homeScore"]
+            assert body["fouls"]["home"] <= 30  # Realistic foul limit
+
+
+def test_basketball_reset_clears_all_stats():
+    """Test that reset clears all enhanced stats, matching soccer reset behavior."""
+    reset_basketball()
+    for _ in range(20):
+        client.get("/basketball/score")
+    resp = client.post("/basketball/reset")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["rebounds"]["home"] == 0
+    assert body["rebounds"]["away"] == 0
+    assert body["assists"]["home"] == 0
+    assert body["assists"]["away"] == 0
+    assert body["fouls"]["home"] == 0
+    assert body["fouls"]["away"] == 0
+    assert body["events"] == []
+
+
 def test_soccer_endpoints():
     resp = client.get("/soccer/score")
     assert resp.status_code == 200

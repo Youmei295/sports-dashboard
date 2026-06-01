@@ -24,6 +24,11 @@ var Registry = []Sport{
 			{Field: "quarter", Label: "Quarter", Type: "number"},
 			{Field: "clock", Label: "Clock", Type: "string"},
 			{Field: "possession", Label: "Possession", Type: "string"},
+			{Field: "rebounds", Label: "Rebounds", Type: "object"},
+			{Field: "assists", Label: "Assists", Type: "object"},
+			{Field: "fouls", Label: "Fouls", Type: "object"},
+			{Field: "timeouts", Label: "Timeouts", Type: "object"},
+			{Field: "events", Label: "Game Events", Type: "array"},
 		},
 	},
 	{

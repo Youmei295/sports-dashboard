@@ -18,7 +18,8 @@ func mockBaseURL() string {
 
 func mockURL(sport, action string) string {
 	base := mockBaseURL()
-	if sport == "" {
+	// Historical behavior: basketball endpoints are rooted at /score, /reset, /config (no sport prefix).
+	if sport == "" || sport == "basketball" {
 		return base + "/" + action
 	}
 	return base + "/" + sport + "/" + action
