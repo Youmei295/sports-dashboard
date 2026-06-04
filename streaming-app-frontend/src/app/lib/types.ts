@@ -62,7 +62,11 @@ export interface SoccerScore {
   events: MatchEvent[]
 }
 
-export type ScoreData = Record<string, unknown>
+export type MatchData = Record<string, unknown> & { id: string }
+export interface ScoreResponse {
+  matches: MatchData[]
+}
+export type ScoreData = MatchData
 
 /** Fields rendered separately by Scoreboard / StatusBadge / EventTimeline */
 export const SCOREBOARD_FIELDS = new Set([

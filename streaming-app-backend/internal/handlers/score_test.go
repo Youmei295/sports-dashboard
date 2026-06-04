@@ -12,17 +12,17 @@ func mockAPIServer(t *testing.T) *httptest.Server {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/score":
-			w.Write([]byte(`{"status":"In Progress","homeScore":10,"awayScore":5}`))
+			w.Write([]byte(`{"matches":[{"status":"In Progress","homeScore":10,"awayScore":5}]}`))
 		case "/reset":
-			w.Write([]byte(`{"status":"Scheduled"}`))
+			w.Write([]byte(`{"matches":[{"status":"Scheduled"}]}`))
 		case "/config":
-			w.Write([]byte(`{"homeTeam":"Lakers"}`))
+			w.Write([]byte(`{"teams":["Lakers"]}`))
 		case "/soccer/score":
-			w.Write([]byte(`{"status":"In Progress","homeScore":1,"awayScore":0,"half":1}`))
+			w.Write([]byte(`{"matches":[{"status":"In Progress","homeScore":1,"awayScore":0,"half":1}]}`))
 		case "/soccer/reset":
-			w.Write([]byte(`{"status":"Scheduled"}`))
+			w.Write([]byte(`{"matches":[{"status":"Scheduled"}]}`))
 		case "/soccer/config":
-			w.Write([]byte(`{"homeTeam":"Barcelona"}`))
+			w.Write([]byte(`{"teams":["Barcelona"]}`))
 		default:
 			w.WriteHeader(404)
 			w.Write([]byte(`{"error":"not found"}`))
@@ -49,8 +49,13 @@ func TestScoreProxy_default(t *testing.T) {
 
 	var body map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &body)
-	if body["status"] != "In Progress" {
-		t.Errorf("expected In Progress, got %v", body["status"])
+	matches, ok := body["matches"].([]interface{})
+	if !ok || len(matches) == 0 {
+		t.Fatalf("expected matches array")
+	}
+	match := matches[0].(map[string]interface{})
+	if match["status"] != "In Progress" {
+		t.Errorf("expected In Progress, got %v", match["status"])
 	}
 }
 
@@ -83,8 +88,13 @@ func TestScoreProxy_soccer(t *testing.T) {
 
 	var body map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &body)
-	if body["half"] != float64(1) {
-		t.Errorf("expected half=1, got %v", body["half"])
+	matches, ok := body["matches"].([]interface{})
+	if !ok || len(matches) == 0 {
+		t.Fatalf("expected matches array")
+	}
+	match := matches[0].(map[string]interface{})
+	if match["half"] != float64(1) {
+		t.Errorf("expected half=1, got %v", match["half"])
 	}
 }
 
@@ -120,8 +130,13 @@ func TestResetProxy(t *testing.T) {
 
 	var body map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &body)
-	if body["status"] != "Scheduled" {
-		t.Errorf("expected Scheduled, got %v", body["status"])
+	matches, ok := body["matches"].([]interface{})
+	if !ok || len(matches) == 0 {
+		t.Fatalf("expected matches array")
+	}
+	match := matches[0].(map[string]interface{})
+	if match["status"] != "Scheduled" {
+		t.Errorf("expected Scheduled, got %v", match["status"])
 	}
 }
 
@@ -167,8 +182,12 @@ func TestConfigProxy(t *testing.T) {
 
 	var body map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &body)
-	if body["homeTeam"] != "Lakers" {
-		t.Errorf("expected homeTeam=Lakers, got %v", body["homeTeam"])
+	teams, ok := body["teams"].([]interface{})
+	if !ok || len(teams) == 0 {
+		t.Fatalf("expected teams array")
+	}
+	if teams[0] != "Lakers" {
+		t.Errorf("expected Lakers in teams, got %v", teams[0])
 	}
 }
 
@@ -187,7 +206,11 @@ func TestConfigProxy_soccer(t *testing.T) {
 
 	var body map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &body)
-	if body["homeTeam"] != "Barcelona" {
-		t.Errorf("expected homeTeam=Barcelona, got %v", body["homeTeam"])
+	teams, ok := body["teams"].([]interface{})
+	if !ok || len(teams) == 0 {
+		t.Fatalf("expected teams array")
+	}
+	if teams[0] != "Barcelona" {
+		t.Errorf("expected Barcelona in teams, got %v", teams[0])
 	}
 }

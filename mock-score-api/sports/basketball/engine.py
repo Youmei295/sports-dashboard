@@ -2,15 +2,33 @@ import random
 from . import config
 from .models import GameState
 
-game = GameState()
+active_matches: dict[str, GameState] = {}
+
+def init_games():
+    global active_matches
+    active_matches = {}
+    teams = list(config.BASKETBALL_TEAMS)
+    random.shuffle(teams)
+    
+    for i in range(3):
+        home = teams[i*2]
+        away = teams[i*2 + 1]
+        match_id = f"bb_{i+1}"
+        active_matches[match_id] = GameState(match_id, home, away)
+
+init_games()
 
 
 def tick() -> None:
+    for game in active_matches.values():
+        _tick_game(game)
+
+def _tick_game(game: GameState) -> None:
     if game.status == "Scheduled":
         game.status = "In Progress"
         game.quarter = 1
         game.clock_remaining = config.QUARTER_SECONDS
-        game.possession = config.TEAM_HOME if random.random() < 0.5 else config.TEAM_AWAY
+        game.possession = game.home_team if random.random() < 0.5 else game.away_team
         return
 
     if game.status == "Final":
@@ -22,7 +40,7 @@ def tick() -> None:
             game.status = "In Progress"
             game.quarter = 3
             game.clock_remaining = config.QUARTER_SECONDS
-            game.possession = config.TEAM_AWAY
+            game.possession = game.away_team
         return
 
     tick_seconds = random.randint(config.TICK_SECONDS_MIN, config.TICK_SECONDS_MAX)
@@ -105,5 +123,4 @@ def tick() -> None:
 
 
 def reset_state() -> None:
-    global game
-    game = GameState()
+    init_games()

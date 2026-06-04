@@ -17,12 +17,12 @@ def health_check():
 @app.get("/score")
 def root_score():
     basketball_engine.tick()
-    return basketball_engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in basketball_engine.active_matches.values()]}
 
 @app.post("/reset")
 def root_reset():
     basketball_engine.reset_state()
-    return basketball_engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in basketball_engine.active_matches.values()]}
 
 @app.get("/config")
 def root_config():

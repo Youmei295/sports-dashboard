@@ -7,13 +7,13 @@ router = APIRouter(tags=["soccer"])
 @router.get("/score")
 def get_score():
     engine.tick()
-    return engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in engine.active_matches.values()]}
 
 
 @router.post("/reset")
 def reset_game():
     engine.reset_state()
-    return engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in engine.active_matches.values()]}
 
 
 @router.get("/config")

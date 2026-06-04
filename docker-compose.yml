@@ -42,7 +42,7 @@ services:
       - "3000:3000"
     environment:
       # The browser makes the fetch on the client side, so localhost:8081 is the host machine's port
-      - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - NEXT_PUBLIC_API_URL=http://127.0.0.1:8081
       # Server-side requests inside the container use internal Docker network
       - SSR_API_URL=http://streaming-backend:8080
     depends_on:
