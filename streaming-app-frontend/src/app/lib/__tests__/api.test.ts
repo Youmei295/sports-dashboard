@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest"
 import { fetchSports, fetchSportStats, fetchScore, resetGame } from "../api"
 
-const BASE = "http://localhost:8080"
+const BASE = "http://127.0.0.1:8081"
 
 beforeEach(() => {
   vi.restoreAllMocks()

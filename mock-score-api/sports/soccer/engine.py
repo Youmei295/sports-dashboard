@@ -2,23 +2,37 @@ import random
 from . import config
 from .models import GameState
 
-game = GameState()
+active_matches: dict[str, GameState] = {}
+
+def init_games():
+    global active_matches
+    active_matches = {}
+    teams = list(config.SOCCER_TEAMS)
+    random.shuffle(teams)
+    
+    for i in range(3):
+        home = teams[i*2]
+        away = teams[i*2 + 1]
+        match_id = f"sc_{i+1}"
+        active_matches[match_id] = GameState(match_id, home, away)
+
+init_games()
 
 
-def _effective_attack(team: str) -> float:
+def _effective_attack(game: GameState, team: str) -> float:
     base = config.HOME_ATTACK if team == "home" else config.AWAY_ATTACK
     if team == "home":
         base *= config.HOME_ADVANTAGE
     return base
 
 
-def _effective_defense(team: str) -> float:
+def _effective_defense(game: GameState, team: str) -> float:
     return config.HOME_DEFENSE if team == "home" else config.AWAY_DEFENSE
 
 
-def _shot_on_target_chance(attacker: str, defender: str) -> float:
-    atk = _effective_attack(attacker)
-    dfn = _effective_defense(defender)
+def _shot_on_target_chance(game: GameState, attacker: str, defender: str) -> float:
+    atk = _effective_attack(game, attacker)
+    dfn = _effective_defense(game, defender)
     return 0.25 + (atk - dfn) / 400
 
 
@@ -26,13 +40,13 @@ def _goal_chance_from_shot() -> float:
     return 0.28
 
 
-def _possession_weight(team: str) -> float:
-    atk = _effective_attack(team)
-    dfn = _effective_defense(team)
+def _possession_weight(game: GameState, team: str) -> float:
+    atk = _effective_attack(game, team)
+    dfn = _effective_defense(game, team)
     return (atk + dfn * 0.6) / 2
 
 
-def _possession_advantage() -> str | None:
+def _possession_advantage(game: GameState) -> str | None:
     home_gd = game.home_score - game.away_score
     if home_gd > 0:
         return "away"
@@ -41,7 +55,7 @@ def _possession_advantage() -> str | None:
     return None
 
 
-def _last_third_multiplier() -> float:
+def _last_third_multiplier(game: GameState) -> float:
     half_end = config.HALF_MINUTES
     minute_in_half = game.minute if game.half == 1 else game.minute - half_end
     if minute_in_half >= half_end - 15:
@@ -49,13 +63,13 @@ def _last_third_multiplier() -> float:
     return 1.0
 
 
-def _simulate_minute() -> None:
-    hw = _possession_weight("home")
-    aw = _possession_weight("away")
+def _simulate_minute(game: GameState) -> None:
+    hw = _possession_weight(game, "home")
+    aw = _possession_weight(game, "away")
     total = hw + aw
     home_poss_pct = hw / total
 
-    advantage = _possession_advantage()
+    advantage = _possession_advantage(game)
     if advantage == "home":
         home_poss_pct = min(home_poss_pct + 0.08, 0.80)
     elif advantage == "away":
@@ -67,10 +81,10 @@ def _simulate_minute() -> None:
 
     game.possession_minutes.append(attacker)
 
-    intensity = _last_third_multiplier()
+    intensity = _last_third_multiplier(game)
 
     if random.random() < 0.20 * intensity:
-        target_chance = _shot_on_target_chance(attacker, defender)
+        target_chance = _shot_on_target_chance(game, attacker, defender)
         if attacker == "home":
             game.home_shots += 1
         else:
@@ -120,6 +134,10 @@ def _simulate_minute() -> None:
 
 
 def tick() -> None:
+    for game in active_matches.values():
+        _tick_game(game)
+
+def _tick_game(game: GameState) -> None:
     if game.status == "Scheduled":
         game.status = "In Progress"
         game.half = 1
@@ -138,7 +156,7 @@ def tick() -> None:
         return
 
     game.minute += 1
-    _simulate_minute()
+    _simulate_minute(game)
 
     if game.minute >= config.HALF_MINUTES * 2:
         game.status = "Final"
@@ -149,5 +167,4 @@ def tick() -> None:
 
 
 def reset_state() -> None:
-    global game
-    game = GameState()
+    init_games()

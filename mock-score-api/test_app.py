@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app import app
 from sports.basketball.engine import reset_state as reset_basketball
+from sports.soccer.engine import reset_state as reset_soccer
 
 client = TestClient(app)
 
@@ -9,20 +10,25 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def reset_before_test():
     reset_basketball()
+    reset_soccer()
 
 
 def test_score_returns_valid_structure():
     resp = client.get("/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "homeTeam" in body
-    assert "awayTeam" in body
-    assert "homeScore" in body
-    assert "awayScore" in body
-    assert "status" in body
-    assert "quarter" in body
-    assert "clock" in body
-    assert "possession" in body
+    assert "matches" in body
+    assert len(body["matches"]) > 0
+    match = body["matches"][0]
+    assert "id" in match
+    assert "homeTeam" in match
+    assert "awayTeam" in match
+    assert "homeScore" in match
+    assert "awayScore" in match
+    assert "status" in match
+    assert "quarter" in match
+    assert "clock" in match
+    assert "possession" in match
 
 
 def test_scores_increase_over_time():
@@ -31,19 +37,21 @@ def test_scores_increase_over_time():
     for _ in range(20):
         resp = client.get("/score")
         body = resp.json()
-        assert body["homeScore"] >= prev_home
-        assert body["awayScore"] >= prev_away
-        prev_home = body["homeScore"]
-        prev_away = body["awayScore"]
+        match = body["matches"][0]
+        assert match["homeScore"] >= prev_home
+        assert match["awayScore"] >= prev_away
+        prev_home = match["homeScore"]
+        prev_away = match["awayScore"]
 
 
 def test_status_eventually_reaches_final():
     for _ in range(500):
         resp = client.get("/score")
         body = resp.json()
-        if body["status"] == "Final":
+        match = body["matches"][0]
+        if match["status"] == "Final":
             break
-    assert body["status"] == "Final"
+    assert body["matches"][0]["status"] == "Final"
 
 
 def test_reset_restores_initial_state():
@@ -52,10 +60,11 @@ def test_reset_restores_initial_state():
     resp = client.post("/reset")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] == "Scheduled"
-    assert body["quarter"] == 0
-    assert body["homeScore"] == 0
-    assert body["awayScore"] == 0
+    match = body["matches"][0]
+    assert match["status"] == "Scheduled"
+    assert match["quarter"] == 0
+    assert match["homeScore"] == 0
+    assert match["awayScore"] == 0
 
 
 def test_reset_allows_game_to_restart():
@@ -64,15 +73,15 @@ def test_reset_allows_game_to_restart():
     for _ in range(5):
         client.get("/score")
     resp = client.get("/score")
-    assert resp.json()["status"] in ("In Progress", "Halftime", "Final")
+    assert resp.json()["matches"][0]["status"] in ("In Progress", "Halftime", "Final")
 
 
 def test_config_endpoint():
     resp = client.get("/config")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["homeTeam"] == "Lakers"
-    assert body["awayTeam"] == "Warriors"
+    assert "teams" in body
+    assert "Lakers" in body["teams"]
     assert body["quarterSeconds"] == 720
 
 
@@ -80,9 +89,10 @@ def test_score_range_is_reasonable():
     for _ in range(100):
         resp = client.get("/score")
         body = resp.json()
-        if body["status"] == "In Progress":
-            assert 0 <= body["homeScore"] <= 200
-            assert 0 <= body["awayScore"] <= 200
+        match = body["matches"][0]
+        if match["status"] == "In Progress":
+            assert 0 <= match["homeScore"] <= 200
+            assert 0 <= match["awayScore"] <= 200
 
 
 def test_halftime_duration(monkeypatch):
@@ -93,36 +103,38 @@ def test_halftime_duration(monkeypatch):
 
     while True:
         resp = client.get("/score")
-        if resp.json()["status"] == "Halftime":
+        if resp.json()["matches"][0]["status"] == "Halftime":
             break
 
     resp = client.get("/score")
-    assert resp.json()["status"] == "Halftime"
+    assert resp.json()["matches"][0]["status"] == "Halftime"
     resp = client.get("/score")
-    assert resp.json()["status"] == "Halftime"
+    assert resp.json()["matches"][0]["status"] == "Halftime"
     resp = client.get("/score")
-    assert resp.json()["status"] == "In Progress"
+    assert resp.json()["matches"][0]["status"] == "In Progress"
 
 
 def test_basketball_prefixed_routes():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "homeTeam" in body
-    assert "possession" in body
+    assert "matches" in body
+    match = body["matches"][0]
+    assert "homeTeam" in match
+    assert "possession" in match
 
 
 def test_basketball_prefixed_reset():
     client.get("/basketball/score")
     resp = client.post("/basketball/reset")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "Scheduled"
+    assert resp.json()["matches"][0]["status"] == "Scheduled"
 
 
 def test_basketball_prefixed_config():
     resp = client.get("/basketball/config")
     assert resp.status_code == 200
-    assert resp.json()["homeTeam"] == "Lakers"
+    assert "Lakers" in resp.json()["teams"]
 
 
 # ============================================================
@@ -134,9 +146,10 @@ def test_basketball_has_rebounds():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "rebounds" in body
-    assert "home" in body["rebounds"]
-    assert "away" in body["rebounds"]
+    match = body["matches"][0]
+    assert "rebounds" in match
+    assert "home" in match["rebounds"]
+    assert "away" in match["rebounds"]
 
 
 def test_basketball_has_assists():
@@ -144,9 +157,10 @@ def test_basketball_has_assists():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "assists" in body
-    assert "home" in body["assists"]
-    assert "away" in body["assists"]
+    match = body["matches"][0]
+    assert "assists" in match
+    assert "home" in match["assists"]
+    assert "away" in match["assists"]
 
 
 def test_basketball_has_fouls():
@@ -154,9 +168,10 @@ def test_basketball_has_fouls():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "fouls" in body
-    assert "home" in body["fouls"]
-    assert "away" in body["fouls"]
+    match = body["matches"][0]
+    assert "fouls" in match
+    assert "home" in match["fouls"]
+    assert "away" in match["fouls"]
 
 
 def test_basketball_has_timeouts():
@@ -164,9 +179,10 @@ def test_basketball_has_timeouts():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "timeouts" in body
-    assert body["timeouts"]["home"] <= 7
-    assert body["timeouts"]["away"] <= 7
+    match = body["matches"][0]
+    assert "timeouts" in match
+    assert match["timeouts"]["home"] <= 7
+    assert match["timeouts"]["away"] <= 7
 
 
 def test_basketball_events_timeline():
@@ -177,8 +193,9 @@ def test_basketball_events_timeline():
     resp = client.get("/basketball/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "events" in body
-    assert isinstance(body["events"], list)
+    match = body["matches"][0]
+    assert "events" in match
+    assert isinstance(match["events"], list)
 
 
 def test_basketball_stats_are_reasonable():
@@ -187,12 +204,13 @@ def test_basketball_stats_are_reasonable():
     for _ in range(100):
         resp = client.get("/basketball/score")
         body = resp.json()
-        if body["status"] == "In Progress":
-            assert body["rebounds"]["home"] >= 0
-            assert body["rebounds"]["away"] >= 0
+        match = body["matches"][0]
+        if match["status"] == "In Progress":
+            assert match["rebounds"]["home"] >= 0
+            assert match["rebounds"]["away"] >= 0
             # Assists cannot exceed score (each assist = 1 basket)
-            assert body["assists"]["home"] <= body["homeScore"]
-            assert body["fouls"]["home"] <= 30  # Realistic foul limit
+            assert match["assists"]["home"] <= match["homeScore"]
+            assert match["fouls"]["home"] <= 30  # Realistic foul limit
 
 
 def test_basketball_reset_clears_all_stats():
@@ -203,29 +221,31 @@ def test_basketball_reset_clears_all_stats():
     resp = client.post("/basketball/reset")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["rebounds"]["home"] == 0
-    assert body["rebounds"]["away"] == 0
-    assert body["assists"]["home"] == 0
-    assert body["assists"]["away"] == 0
-    assert body["fouls"]["home"] == 0
-    assert body["fouls"]["away"] == 0
-    assert body["events"] == []
+    match = body["matches"][0]
+    assert match["rebounds"]["home"] == 0
+    assert match["rebounds"]["away"] == 0
+    assert match["assists"]["home"] == 0
+    assert match["assists"]["away"] == 0
+    assert match["fouls"]["home"] == 0
+    assert match["fouls"]["away"] == 0
+    assert match["events"] == []
 
 
 def test_soccer_endpoints():
     resp = client.get("/soccer/score")
     assert resp.status_code == 200
     body = resp.json()
-    assert "half" in body
-    assert "homeTeam" in body
-    assert "awayTeam" in body
-    assert "homeScore" in body
-    assert "awayScore" in body
+    assert "matches" in body
+    match = body["matches"][0]
+    assert "half" in match
+    assert "homeTeam" in match
+    assert "awayTeam" in match
+    assert "homeScore" in match
+    assert "awayScore" in match
 
     resp = client.get("/soccer/config")
     assert resp.status_code == 200
-    assert resp.json()["homeTeam"] == "Barcelona"
+    assert "Barcelona" in resp.json()["teams"]
 
     resp = client.post("/soccer/reset")
     assert resp.status_code == 200
-

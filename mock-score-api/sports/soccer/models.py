@@ -2,9 +2,10 @@ from . import config
 
 
 class GameState:
-    def __init__(self):
-        self.home_team: str = config.TEAM_HOME
-        self.away_team: str = config.TEAM_AWAY
+    def __init__(self, match_id: str, home_team: str, away_team: str):
+        self.id = match_id
+        self.home_team: str = home_team
+        self.away_team: str = away_team
         self.home_score: int = 0
         self.away_score: int = 0
         self.status: str = "Scheduled"
@@ -52,6 +53,7 @@ class GameState:
 
     def to_dict(self) -> dict:
         return {
+            "id": self.id,
             "homeTeam": self.home_team,
             "awayTeam": self.away_team,
             "homeScore": self.home_score,
