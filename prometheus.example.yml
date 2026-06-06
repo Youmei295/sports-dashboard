@@ -1,0 +1,68 @@
+# Prometheus Scrape Configuration Example
+# 
+# IMPORTANT: Update the targets below with your actual Render service URLs.
+# Render services are accessible at: https://your-service-name.onrender.com
+# 
+# For Render deployments, Prometheus needs to scrape the public URLs.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Sports Dashboard Microservices on Render
+  # Replace the URLs below with your actual Render service URLs
+  - job_name: 'sports-dashboard'
+    static_configs:
+      - targets:
+          # Go Backend - Update with your Render URL
+          # Example: my-backend.onrender.com:443 (use port 443 for HTTPS)
+          - 'your-backend-service.onrender.com:443'
+          # Python Mock API - Update with your Render URL  
+          - 'your-mock-api-service.onrender.com:443'
+        labels:
+          environment: 'production'
+          platform: 'render'
+    
+    # HTTPS is required for Render public URLs
+    scheme: https
+    
+    # Metrics path (default is /metrics)
+    metrics_path: /metrics
+
+  # Optional: Separate jobs per service with custom labels
+  - job_name: 'go-backend'
+    scheme: https
+    static_configs:
+      - targets: ['your-backend-service.onrender.com:443']
+    relabel_configs:
+      - target_label: service
+        replacement: streaming-backend
+
+  - job_name: 'mock-api'
+    scheme: https
+    static_configs:
+      - targets: ['your-mock-api-service.onrender.com:443']
+    relabel_configs:
+      - target_label: service
+        replacement: mock-score-api
+
+# ============================================================================
+# QUICK SETUP INSTRUCTIONS
+# ============================================================================
+# 
+# 1. Find your Render service URLs in the Render dashboard
+#    - Go to your service -> Settings -> Service Details
+#    - Copy the service URL (e.g., https://sports-backend.onrender.com)
+#
+# 2. Replace the target URLs above with your actual URLs
+#    - Remove the https:// prefix (Prometheus adds it via 'scheme: https')
+#    - Keep the :443 port for HTTPS connections
+#
+# 3. Test metrics endpoints manually:
+#    curl https://your-backend-service.onrender.com/metrics
+#    curl https://your-mock-api-service.onrender.com/metrics
+#
+# 4. Reload Prometheus to apply the new configuration
+#
+# ============================================================================
