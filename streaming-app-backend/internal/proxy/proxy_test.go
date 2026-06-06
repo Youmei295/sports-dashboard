@@ -26,7 +26,7 @@ func TestGetScore_default(t *testing.T) {
 			t.Errorf("expected /score, got %s", r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok","homeScore":10}`))
+		w.Write([]byte(`{"matches":[{"status":"ok","homeScore":10}]}`))
 	})
 	defer cleanup()
 
@@ -41,8 +41,10 @@ func TestGetScore_default(t *testing.T) {
 	if err := json.Unmarshal(body, &result); err != nil {
 		t.Fatal(err)
 	}
-	if result["status"] != "ok" {
-		t.Errorf("expected status=ok, got %v", result["status"])
+	matches, _ := result["matches"].([]interface{})
+	match := matches[0].(map[string]interface{})
+	if match["status"] != "ok" {
+		t.Errorf("expected status=ok, got %v", match["status"])
 	}
 }
 
@@ -51,7 +53,7 @@ func TestGetScore_basketball(t *testing.T) {
 		if r.URL.Path != "/score" {
 			t.Errorf("expected /score for basketball, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"status":"ok"}`))
+		w.Write([]byte(`{"matches":[{"status":"ok"}]}`))
 	})
 	defer cleanup()
 
@@ -69,7 +71,7 @@ func TestGetScore_soccer(t *testing.T) {
 		if r.URL.Path != "/soccer/score" {
 			t.Errorf("expected /soccer/score, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"status":"ok"}`))
+		w.Write([]byte(`{"matches":[{"status":"ok"}]}`))
 	})
 	defer cleanup()
 
@@ -106,7 +108,7 @@ func TestResetGame(t *testing.T) {
 		if r.URL.Path != "/reset" {
 			t.Errorf("expected /reset, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"status":"Scheduled"}`))
+		w.Write([]byte(`{"matches":[{"status":"Scheduled"}]}`))
 	})
 	defer cleanup()
 
@@ -119,8 +121,10 @@ func TestResetGame(t *testing.T) {
 	}
 	var result map[string]any
 	json.Unmarshal(body, &result)
-	if result["status"] != "Scheduled" {
-		t.Errorf("expected status=Scheduled, got %v", result["status"])
+	matches, _ := result["matches"].([]interface{})
+	match := matches[0].(map[string]interface{})
+	if match["status"] != "Scheduled" {
+		t.Errorf("expected status=Scheduled, got %v", match["status"])
 	}
 }
 
@@ -129,7 +133,7 @@ func TestResetGame_soccer(t *testing.T) {
 		if r.URL.Path != "/soccer/reset" {
 			t.Errorf("expected /soccer/reset, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"status":"Scheduled"}`))
+		w.Write([]byte(`{"matches":[{"status":"Scheduled"}]}`))
 	})
 	defer cleanup()
 
@@ -147,7 +151,7 @@ func TestGetConfig(t *testing.T) {
 		if r.URL.Path != "/config" {
 			t.Errorf("expected /config, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"homeTeam":"Lakers"}`))
+		w.Write([]byte(`{"teams":["Lakers"]}`))
 	})
 	defer cleanup()
 
@@ -160,8 +164,9 @@ func TestGetConfig(t *testing.T) {
 	}
 	var result map[string]any
 	json.Unmarshal(body, &result)
-	if result["homeTeam"] != "Lakers" {
-		t.Errorf("expected homeTeam=Lakers, got %v", result["homeTeam"])
+	teams, _ := result["teams"].([]interface{})
+	if teams[0] != "Lakers" {
+		t.Errorf("expected Lakers in teams, got %v", teams[0])
 	}
 }
 
@@ -170,7 +175,7 @@ func TestGetConfig_soccer(t *testing.T) {
 		if r.URL.Path != "/soccer/config" {
 			t.Errorf("expected /soccer/config, got %s", r.URL.Path)
 		}
-		w.Write([]byte(`{"homeTeam":"Barcelona"}`))
+		w.Write([]byte(`{"teams":["Barcelona"]}`))
 	})
 	defer cleanup()
 
@@ -180,8 +185,9 @@ func TestGetConfig_soccer(t *testing.T) {
 	}
 	var result map[string]any
 	json.Unmarshal(body, &result)
-	if result["homeTeam"] != "Barcelona" {
-		t.Errorf("expected homeTeam=Barcelona, got %v", result["homeTeam"])
+	teams, _ := result["teams"].([]interface{})
+	if teams[0] != "Barcelona" {
+		t.Errorf("expected Barcelona in teams, got %v", teams[0])
 	}
 	if code != 200 {
 		t.Errorf("expected 200, got %d", code)

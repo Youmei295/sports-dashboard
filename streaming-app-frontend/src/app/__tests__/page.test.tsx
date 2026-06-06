@@ -7,15 +7,20 @@ beforeEach(() => {
 })
 
 const scoreData = {
-  homeTeam: "Lakers",
-  awayTeam: "Warriors",
-  homeScore: 87,
-  awayScore: 93,
-  status: "In Progress",
-  quarter: 3,
-  events: [
-    { minute: 12, type: "score", team: "home", description: "Lakers score!" },
-  ],
+  matches: [
+    {
+      id: "sc_1",
+      homeTeam: "Lakers",
+      awayTeam: "Warriors",
+      homeScore: 87,
+      awayScore: 93,
+      status: "In Progress",
+      quarter: 3,
+      events: [
+        { minute: 12, type: "score", team: "home", description: "Lakers score!" },
+      ],
+    }
+  ]
 }
 
 const sportSchema = {
@@ -27,21 +32,26 @@ const sportSchema = {
 }
 
 const basketballData = {
-  homeTeam: "Lakers",
-  awayTeam: "Warriors",
-  homeScore: 87,
-  awayScore: 93,
-  status: "In Progress",
-  quarter: 3,
-  clock: "5:42",
-  possession: "Lakers",
-  rebounds: { home: 42, away: 38 },
-  assists: { home: 24, away: 21 },
-  fouls: { home: 12, away: 14 },
-  timeouts: { home: 5, away: 4 },
-  events: [
-    { minute: 5, type: "score", team: "home", description: "LeBron drives for 2!" },
-  ],
+  matches: [
+    {
+      id: "bb_1",
+      homeTeam: "Lakers",
+      awayTeam: "Warriors",
+      homeScore: 87,
+      awayScore: 93,
+      status: "In Progress",
+      quarter: 3,
+      clock: "5:42",
+      possession: "Lakers",
+      rebounds: { home: 42, away: 38 },
+      assists: { home: 24, away: 21 },
+      fouls: { home: 12, away: 14 },
+      timeouts: { home: 5, away: 4 },
+      events: [
+        { minute: 5, type: "score", team: "home", description: "LeBron drives for 2!" },
+      ],
+    }
+  ]
 }
 
 const basketballSchema = {

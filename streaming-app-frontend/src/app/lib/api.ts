@@ -1,6 +1,6 @@
-import type { Sport, SportsListResponse, ScoreData } from "./types"
+import type { Sport, SportsListResponse, ScoreResponse } from "./types"
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8081"
 
 async function fetchJSON<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -18,10 +18,10 @@ export function fetchSportStats(sportId: string): Promise<Sport> {
   return fetchJSON<Sport>(`${BASE_URL}/api/sports/${sportId}`)
 }
 
-export function fetchScore(sportId: string): Promise<ScoreData> {
-  return fetchJSON<ScoreData>(`${BASE_URL}/api/score?sport=${sportId}`)
+export function fetchScore(sportId: string): Promise<ScoreResponse> {
+  return fetchJSON<ScoreResponse>(`${BASE_URL}/api/score?sport=${sportId}`)
 }
 
-export function resetGame(sportId: string): Promise<ScoreData> {
-  return fetchJSON<ScoreData>(`${BASE_URL}/api/reset?sport=${sportId}`)
+export function resetGame(sportId: string): Promise<ScoreResponse> {
+  return fetchJSON<ScoreResponse>(`${BASE_URL}/api/reset?sport=${sportId}`)
 }

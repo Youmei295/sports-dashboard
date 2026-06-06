@@ -27,9 +27,8 @@ SIMULATION_TICKS = Counter(
 
 def update_match_metrics():
     """Update the active matches gauge for all sports."""
-    # Basketball uses a single game, so count is 1 if active
-    if basketball_engine.game:
-        MATCHES_ACTIVE.labels(sport="basketball").set(1)
+    if hasattr(basketball_engine, 'active_matches'):
+        MATCHES_ACTIVE.labels(sport="basketball").set(len(basketball_engine.active_matches))
     else:
         MATCHES_ACTIVE.labels(sport="basketball").set(0)
 
@@ -43,13 +42,13 @@ def root_score():
     basketball_engine.tick()
     SIMULATION_TICKS.labels(sport="basketball").inc()
     update_match_metrics()
-    return basketball_engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in basketball_engine.active_matches.values()]}
 
 @app.post("/reset")
 def root_reset():
     basketball_engine.reset_state()
     update_match_metrics()
-    return basketball_engine.game.to_dict()
+    return {"matches": [game.to_dict() for game in basketball_engine.active_matches.values()]}
 
 @app.get("/config")
 def root_config():

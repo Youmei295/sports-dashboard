@@ -2,15 +2,16 @@ from . import config
 
 
 class GameState:
-    def __init__(self):
-        self.home_team: str = config.TEAM_HOME
-        self.away_team: str = config.TEAM_AWAY
+    def __init__(self, match_id: str, home_team: str, away_team: str):
+        self.id = match_id
+        self.home_team: str = home_team
+        self.away_team: str = away_team
         self.home_score: int = config.SCORE_INIT_HOME
         self.away_score: int = config.SCORE_INIT_AWAY
         self.status: str = "Scheduled"
         self.quarter: int = 0
         self.clock_remaining: int = 0
-        self.possession: str = config.TEAM_HOME
+        self.possession: str = home_team
         self.halftime_counter: int = 0
         self.consecutive_scores: int = 0
         self.last_scorer: str | None = None
@@ -43,6 +44,7 @@ class GameState:
 
     def to_dict(self) -> dict:
         return {
+            "id": self.id,
             "homeTeam": self.home_team,
             "awayTeam": self.away_team,
             "homeScore": self.home_score,
