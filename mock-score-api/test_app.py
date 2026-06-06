@@ -229,3 +229,41 @@ def test_soccer_endpoints():
     resp = client.post("/soccer/reset")
     assert resp.status_code == 200
 
+
+# ============================================================
+# Prometheus Metrics Tests
+# ============================================================
+
+def test_metrics_endpoint_exists():
+    """Test that the /metrics endpoint is exposed for Prometheus scraping."""
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    # Prometheus metrics are in plain text format
+    assert "text/plain" in resp.headers.get("content-type", "")
+
+
+def test_metrics_include_custom_metrics():
+    """Test that custom metrics are exposed."""
+    # Make some requests to generate metrics
+    client.get("/score")
+    client.get("/score")
+    
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    content = resp.text
+    
+    # Check for our custom metrics
+    assert "mock_api_matches_active" in content
+    assert "mock_api_simulation_ticks_total" in content
+    assert "basketball" in content  # Sport label
+
+
+def test_metrics_include_http_metrics():
+    """Test that HTTP metrics are auto-instrumented."""
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    content = resp.text
+    
+    # FastAPI instrumentator provides these metrics
+    assert "http_request" in content.lower()
+
